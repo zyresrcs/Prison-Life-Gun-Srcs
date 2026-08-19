@@ -1,0 +1,183 @@
+---------- ak47 ----------
+-- Script Path: game:GetService("ReplicatedStorage").SharedModules.ToolProperties["AK-47"]
+
+
+return {
+    Damage = 15,
+    MaxAmmo = 30,
+    FireRate = 0.1,
+    AutoFire = true,
+    Range = 1100,
+    AccurateRange = 165,
+    ReloadTime = 2,
+    ShootSoundId = "http://www.roblox.com/asset/?id=2934888736",
+    SecondarySoundId = nil,
+    ReloadSoundId = "http://www.roblox.com/asset/?id=2934887229",
+    SlotType = "Primary",
+    Icon = "rbxassetid://93481383611512",
+    ImageRectOffset = Vector2.new(0, 128)
+};
+
+
+
+---------- FAL ----------
+
+return {
+    Damage = 15,
+    MaxAmmo = 30,
+    FireRate = 0.1,
+    AutoFire = true,
+    Range = 1100,
+    AccurateRange = 165,
+    ReloadTime = 2,
+    ShootSoundId = "http://www.roblox.com/asset/?id=2934888736",
+    SecondarySoundId = nil,
+    ReloadSoundId = "http://www.roblox.com/asset/?id=2934887229",
+    SlotType = "Primary",
+    Icon = "rbxassetid://93481383611512",
+    ImageRectOffset = Vector2.new(0, 128)
+};
+
+
+
+---------- M4A1 ----------
+
+return {
+    Damage = 17,
+    MaxAmmo = 30,
+    FireRate = 0.09,
+    AutoFire = true,
+    Range = 1100,
+    AccurateRange = 190,
+    ReloadTime = 2,
+    ShootSoundId = "http://www.roblox.com/asset/?id=2934888536",
+    SecondarySoundId = nil,
+    ReloadSoundId = "http://www.roblox.com/asset/?id=2934887229",
+    SlotType = "Primary",
+    Icon = "rbxassetid://93481383611512",
+    ImageRectOffset = Vector2.new(0, 256)
+};
+
+
+
+
+---------- M700 ----------
+
+return {
+    Damage = 75,
+    MaxAmmo = 1,
+    StoredAmmo = 15,
+    MaxStoredAmmo = 15,
+    FireRate = 0.2,
+    AutoFire = false,
+    Range = 1300,
+    AccurateRange = 1300,
+    ReloadTime = 3,
+    Behavior = "Sniper",
+    ShootSoundId = "rbxassetid://84419861201505",
+    ReloadSoundId = "rbxassetid://73708758290921",
+    SlotType = "Primary",
+    Icon = "rbxassetid://93481383611512",
+    ChargeTime = 0.3,
+    ImageRectOffset = Vector2.new(256, 128)
+};
+
+
+
+
+---------- M9 ----------
+
+return {
+    Damage = 15,
+    MaxAmmo = 15,
+    FireRate = 0.12,
+    AutoFire = false,
+    Range = 1500,
+    AccurateRange = 110,
+    ReloadTime = 2,
+    ShootSoundId = "http://www.roblox.com/asset/?id=2934888024",
+    SecondarySoundId = nil,
+    ReloadSoundId = "http://www.roblox.com/asset/?id=2934887229",
+    SlotType = "Secondary"
+};
+
+
+
+
+---------- MP5 ----------
+
+return {
+    Damage = 11,
+    MaxAmmo = 25,
+    FireRate = 0.1,
+    AutoFire = true,
+    Range = 1100,
+    AccurateRange = 155,
+    ReloadTime = 2,
+    ShootSoundId = "rbxassetid://7698730413",
+    SecondarySoundId = nil,
+    ReloadSoundId = "http://www.roblox.com/asset/?id=2934887229",
+    SlotType = "Primary",
+    Icon = "rbxassetid://93481383611512",
+    ImageRectOffset = Vector2.new(0, 384)
+};
+
+
+
+
+---------- Shotgun ----------
+
+return {
+    Damage = 19,
+    MaxAmmo = 6,
+    FireRate = 0.7,
+    AutoFire = false,
+    Range = 350,
+    AccurateRange = 52,
+    ReloadTime = 3.5,
+    ProjectileCount = 5,
+    Behavior = "Shotgun",
+    ShootSoundId = "http://www.roblox.com/asset/?id=2934889760",
+    SecondarySoundId = "http://www.roblox.com/asset/?id=255061173",
+    ReloadSoundId = "http://www.roblox.com/asset/?id=2934888952",
+    SlotType = "Primary",
+    Icon = "rbxassetid://93481383611512",
+    ImageRectOffset = Vector2.new(256, 0)
+};
+
+
+
+---------- Revolver ----------
+
+return {
+    Damage = 26,
+    MaxAmmo = 6,
+    FireRate = 0.3,
+    AutoFire = false,
+    Range = 1500,
+    AccurateRange = 170,
+    ReloadTime = 3,
+    ShootSoundId = "rbxassetid://10209803",
+    SecondarySoundId = nil,
+    ReloadSoundId = "rbxassetid://104727715547917",
+    SlotType = "Secondary"
+};
+
+
+
+
+---------- Taser ----------
+
+return {
+    MaxAmmo = 1,
+    AutoFire = false,
+    Range = 52,
+    AccurateRange = 90,
+    FireRate = 0.1,
+    ReloadTime = 3.4,
+    Behavior = "Taser",
+    ShootSoundId = "http://www.roblox.com/asset/?id=2934889941",
+    SecondarySoundId = nil,
+    ReloadSoundId = "rbxassetid://82273261",
+    ChargeTime = 0.15
+};

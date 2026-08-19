@@ -1,0 +1,973 @@
+local Players = game:GetService("Players");
+local ReplicatedStorage = game:GetService("ReplicatedStorage");
+local UserInputService = game:GetService("UserInputService");
+game:GetService("ContextActionService");
+local Debris = game:GetService("Debris");
+game:GetService("TweenService");
+local GuiService = game:GetService("GuiService");
+local RunService = game:GetService("RunService");
+local Teams = game:GetService("Teams");
+local Maid = require(ReplicatedStorage.SharedModules.Maid);
+local GunTracers = require(ReplicatedStorage.SharedModules.GunTracers);
+local isInsideDynThumbFrame = require(ReplicatedStorage.SharedModules.isInsideDynThumbFrame);
+local PlayerSettings = ReplicatedStorage.PlayerSettings;
+local LocalPlayer = Players.LocalPlayer;
+local GunRemotes = ReplicatedStorage.GunRemotes;
+local PlayerModule = require(LocalPlayer:WaitForChild("PlayerScripts", 3):WaitForChild("PlayerModule", 3));
+GunRemotes:WaitForChild("ReplicateEvent");
+local ShootEvent = GunRemotes.ShootEvent;
+local FuncReload = GunRemotes.FuncReload;
+local u1 = Maid.new();
+local u2 = RaycastParams.new();
+u2.CollisionGroup = "ClientBullet";
+u2.FilterType = Enum.RaycastFilterType.Exclude;
+local u3 = {
+    Equip = "rbxassetid://107176344504758",
+    Hold = "rbxassetid://388726667",
+    ReloadRifle = "rbxassetid://131326339350805",
+    ReloadMagazine = "rbxassetid://388723916",
+    ReloadShells = "rbxassetid://405212265",
+    ReloadRevolver = "rbxassetid://113267949064300",
+    ShootBullet = "rbxassetid://389472570",
+    ShootRifle = "rbxassetid://83690472549256",
+    ShootShell = "rbxassetid://405194080"
+};
+local u4 = {};
+local u5 = {};
+local u6 = nil;
+local u7 = nil;
+local u8 = 0;
+local u9 = 0;
+local u10 = false;
+local u11 = UDim2.new();
+local PlayerGui = LocalPlayer.PlayerGui;
+local ScopeFrame = PlayerGui:WaitForChild("CrosshairGui").ScopeFrame;
+local Cursor = ScopeFrame.Cursor;
+local hud = PlayerGui:WaitForChild("Home").hud;
+local GunFrame = hud.BottomRightFrame.GunFrame;
+local BulletsLabel = GunFrame.BulletsLabel;
+local TouchReloadButton = GunFrame.TouchReloadButton;
+local ActionArea = hud.ActionArea;
+local ActionButton2 = hud.ActionButton2;
+local MobileGunFrame = LocalPlayer.PlayerGui.Home.hud.MobileGunFrame;
+local IgnoreTouchArea = MobileGunFrame.IgnoreTouchArea;
+local MobileCursor = MobileGunFrame.MobileCursor;
+local TaserProgress = MobileGunFrame.TaserProgress;
+ScopeFrame.Visible = false;
+Cursor.Visible = false;
+MobileCursor.Visible = false;
+
+local function onSettingsLoaded() -- Line: 80
+    -- upvalues: PlayerSettings (copy), u9 (ref)
+    local v12 = PlayerSettings:GetAttribute("MobileCursorOffset");
+
+    if v12 then
+        u9 = v12 * 15;
+    end;
+
+    PlayerSettings:GetAttributeChangedSignal("MobileCursorOffset"):Connect(function() -- Line: 85
+        -- upvalues: PlayerSettings (ref), u9 (ref)
+        u9 = PlayerSettings:GetAttribute("MobileCursorOffset") * 15;
+    end);
+end;
+
+local function init() -- Line: 91
+    -- upvalues: u3 (copy), u4 (copy), GunFrame (copy), MobileGunFrame (copy), PlayerSettings (copy), u9 (ref)
+    for i, v in pairs(u3) do
+        local Animation = Instance.new("Animation");
+        Animation.AnimationId = v;
+        u4[i] = Animation;
+    end;
+
+    GunFrame.Visible = false;
+    MobileGunFrame.Visible = false;
+
+    if not PlayerSettings:GetAttribute("Settings_Loaded") then
+        PlayerSettings:GetAttributeChangedSignal("Settings_Loaded"):Once(function() -- Line: 104
+            -- upvalues: PlayerSettings (ref), u9 (ref)
+            local v13 = PlayerSettings:GetAttribute("MobileCursorOffset");
+
+            if v13 then
+                u9 = v13 * 15;
+            end;
+
+            PlayerSettings:GetAttributeChangedSignal("MobileCursorOffset"):Connect(function() -- Line: 85
+                -- upvalues: PlayerSettings (ref), u9 (ref)
+                u9 = PlayerSettings:GetAttribute("MobileCursorOffset") * 15;
+            end);
+        end);
+
+        return;
+    end;
+
+    local v14 = PlayerSettings:GetAttribute("MobileCursorOffset");
+
+    if v14 then
+        u9 = v14 * 15;
+    end;
+
+    PlayerSettings:GetAttributeChangedSignal("MobileCursorOffset"):Connect(function() -- Line: 85
+        -- upvalues: PlayerSettings (ref), u9 (ref)
+        u9 = PlayerSettings:GetAttribute("MobileCursorOffset") * 15;
+    end);
+end;
+
+local function canBeDamaged(p15) -- Line: 110
+    -- upvalues: LocalPlayer (copy), Teams (copy)
+    if p15.Team == LocalPlayer.Team then
+        return;
+    end;
+
+    local Character = p15.Character;
+
+    if not Character then
+        return;
+    end;
+
+    if LocalPlayer.Team == Teams.Guards and (p15.Team == Teams.Inmates and not Character:GetAttribute("Hostile")) then
+        return;
+    end;
+
+    if Character:FindFirstChildOfClass("ForceField") then
+        return;
+    end;
+
+    local Humanoid = Character:FindFirstChild("Humanoid");
+
+    if Humanoid and Humanoid.Health > 0 then
+        return true;
+    end;
+end;
+
+local function lastInputWasTouch() -- Line: 140
+    -- upvalues: UserInputService (copy)
+    return UserInputService:GetLastInputType() == Enum.UserInputType.Touch;
+end;
+
+local function isOutsideBounds(p16, p17, p18) -- Line: 144
+    return p16.AbsolutePosition.X > p17 or (p17 > p16.AbsolutePosition.X + p16.AbsoluteSize.X or (p16.AbsolutePosition.Y > p18 or p18 > p16.AbsolutePosition.Y + p16.AbsoluteSize.Y));
+end;
+
+local function loadAnimations(p19) -- Line: 157
+    -- upvalues: u4 (copy), u5 (copy)
+    for i, v in pairs(u4) do
+        local v20 = p19:LoadAnimation(v);
+        v20.Priority = Enum.AnimationPriority.Action2;
+        u5[i] = v20;
+    end;
+end;
+
+local function playAnimation(p21) -- Line: 165
+    -- upvalues: u5 (copy)
+    local v22 = u5[p21];
+
+    if v22 then
+        v22:Play();
+    end;
+end;
+
+local function stopAnimation(p23) -- Line: 172
+    -- upvalues: u5 (copy)
+    local v24 = u5[p23];
+
+    if v24 then
+        v24:Stop();
+    end;
+end;
+
+local function stopAllAnimations() -- Line: 179
+    -- upvalues: u3 (copy), u5 (copy)
+    for i, _ in pairs(u3) do
+        local v25 = u5[i];
+
+        if v25 then
+            v25:Stop();
+        end;
+    end;
+end;
+
+local function playSound(p26) -- Line: 185
+    -- upvalues: u6 (ref), Debris (copy)
+    local v27 = u6 and u6:FindFirstChild("Handle");
+
+    if v27 then
+        local v28 = v27:FindFirstChild(p26);
+
+        if v28 then
+            local v29 = v28:Clone();
+            v29.Parent = v28.Parent;
+            v29:Play();
+            Debris:AddItem(v29, 5);
+
+            return;
+        end;
+
+        warn("No sound found");
+        warn("No sound found");
+    end;
+end;
+
+local function stopAllSounds() -- Line: 201
+    -- upvalues: u6 (ref)
+    local v30 = u6 and u6:FindFirstChild("Handle");
+
+    if v30 then
+        for _, child in pairs(v30:GetChildren()) do
+            if child:IsA("Sound") then
+                child:Stop();
+            end;
+        end;
+    end;
+end;
+
+local function getScreenHit(p31, p32) -- Line: 212
+    -- upvalues: u2 (copy)
+    local v33 = workspace.CurrentCamera:ViewportPointToRay(p31, p32);
+    local v34 = workspace:Raycast(v33.Origin, v33.Direction * 1500, u2);
+
+    if v34 then
+        return v34.Position;
+    end;
+
+    return v33.Origin + v33.Direction * 1500;
+end;
+
+local function castRay(p35, p36, p37) -- Line: 224
+    -- upvalues: u7 (ref), u2 (copy)
+    local v38 = math.random();
+
+    if u7.Behavior == "Sniper" or u7.Behavior == "Shotgun" then
+        v38 = math.sqrt(v38);
+    end;
+
+    local v39 = CFrame.new(p35, p36);
+    local Angles = CFrame.Angles;
+    local v40 = 360 - 720 * math.random();
+    local v41 = (v39 * Angles(0, 0, (math.rad(v40))) * CFrame.Angles(0, v38 * p37, 0)).LookVector * u7.Range;
+    local v42 = workspace:Raycast(p35, v41, u2);
+    local v43;
+
+    if v42 then
+        v43 = v42.Instance;
+    else
+        v43 = v42;
+    end;
+
+    return v43, v42 and v42.Position or p35 + v41;
+end;
+
+local u44 = 15;
+
+local function toggleScope(p45) -- Line: 246
+    -- upvalues: u10 (ref), u6 (ref), LocalPlayer (copy), UserInputService (copy), u2 (copy), PlayerModule (copy), u44 (ref), ScopeFrame (copy)
+    if p45 == nil then
+        p45 = not u10;
+    end;
+
+    if u6:GetAttribute("Local_ReloadSession") ~= 0 then
+        return;
+    end;
+
+    local v46 = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid");
+
+    if not v46 or v46.SeatPart and v46.SeatPart:IsDescendantOf(workspace.CarContainer) then
+        return;
+    end;
+
+    if p45 and not u10 then
+        if UserInputService:GetLastInputType() == Enum.UserInputType.Gamepad1 and UserInputService.MouseBehavior ~= Enum.MouseBehavior.LockCenter then
+            local v47 = UserInputService:GetMouseLocation();
+            local v48 = workspace.CurrentCamera:ViewportPointToRay(v47.X, v47.Y);
+            local v49 = workspace:Raycast(v48.Origin, v48.Direction * 1500, u2);
+
+            if v49 then
+                local _ = v49.Position;
+            else
+                local _ = v48.Origin + v48.Direction * 1500;
+            end;
+
+            workspace.CurrentCamera.CFrame = workspace.CurrentCamera.CFrame * CFrame.Angles(0.2617993877991494, 0, 0);
+        end;
+
+        local activeCameraController = PlayerModule:GetCameras().activeCameraController;
+
+        if activeCameraController then
+            u44 = activeCameraController.currentSubjectDistance or 15;
+        end;
+
+        UserInputService.MouseIconEnabled = false;
+        ScopeFrame.Visible = true;
+        LocalPlayer.CameraMode = Enum.CameraMode.LockFirstPerson;
+        workspace.CurrentCamera.FieldOfView = 15;
+        _G.cameraSensitivity = UserInputService:GetLastInputType() == Enum.UserInputType.Gamepad1 and 0.2 or 0.1;
+    elseif u10 then
+        ScopeFrame.Visible = false;
+        LocalPlayer.CameraMode = Enum.CameraMode.Classic;
+        workspace.CurrentCamera.FieldOfView = 70;
+        _G.cameraSensitivity = 1;
+        UserInputService.MouseIconEnabled = true;
+        local activeCameraController = PlayerModule:GetCameras().activeCameraController;
+
+        if activeCameraController then
+            activeCameraController:SetCameraToSubjectDistance(u44);
+        end;
+
+        if UserInputService:GetLastInputType() == Enum.UserInputType.Gamepad1 and u44 > 0.55 then
+            local v50 = UserInputService:GetMouseLocation();
+            local v51 = workspace.CurrentCamera:ViewportPointToRay(v50.X, v50.Y);
+            local v52 = workspace:Raycast(v51.Origin, v51.Direction * 1500, u2);
+
+            if v52 then
+                local _ = v52.Position;
+            else
+                local _ = v51.Origin + v51.Direction * 1500;
+            end;
+
+            workspace.CurrentCamera.CFrame = workspace.CurrentCamera.CFrame * CFrame.Angles(-0.2617993877991494, 0, 0);
+        end;
+    end;
+
+    u10 = p45;
+end;
+
+local function reload() -- Line: 312
+    -- upvalues: u6 (ref), u7 (ref), playSound (copy), u5 (copy), toggleScope (copy), BulletsLabel (copy), FuncReload (copy)
+    if not u6 then
+        return;
+    end;
+
+    local v53 = u6;
+
+    if v53:GetAttribute("Local_ReloadSession") == 0 then
+        local v54 = v53:GetAttribute("StoredAmmo");
+
+        if u7.Behavior == "Sniper" and (v54 and v54 <= 0) then
+            return;
+        end;
+
+        playSound("ReloadSound");
+        local v55 = v53:GetAttribute("Behavior");
+
+        if v55 == "Shotgun" then
+            local ReloadShells = u5.ReloadShells;
+
+            if ReloadShells then
+                ReloadShells:Play();
+            end;
+        elseif v55 == "Sniper" then
+            toggleScope(false);
+            local ReloadRifle = u5.ReloadRifle;
+
+            if ReloadRifle then
+                ReloadRifle:Play();
+            end;
+        elseif u7.ReloadSoundId == "rbxassetid://104727715547917" then
+            local ReloadRevolver = u5.ReloadRevolver;
+
+            if ReloadRevolver then
+                ReloadRevolver:Play();
+            end;
+        else
+            local ReloadMagazine = u5.ReloadMagazine;
+
+            if ReloadMagazine then
+                ReloadMagazine:Play();
+            end;
+        end;
+
+        BulletsLabel.Text = "...";
+        local v56 = tick();
+        v53:SetAttribute("Local_ReloadSession", v56);
+        task.spawn(FuncReload.InvokeServer, FuncReload);
+        task.wait(u7.ReloadTime);
+
+        if v53:GetAttribute("Local_ReloadSession") == v56 and v53 == u6 then
+            if u7.Behavior == "Sniper" then
+                local v57 = v53:GetAttribute("Local_CurrentAmmo");
+
+                if v57 < v53:GetAttribute("MaxAmmo") then
+                    v53:SetAttribute("Local_CurrentAmmo", 1);
+                    BulletsLabel.Text = "1" .. " | " .. v54 - 1;
+                else
+                    BulletsLabel.Text = v57 .. " | " .. v53:GetAttribute("StoredAmmo");
+                end;
+            else
+                v53:SetAttribute("Local_CurrentAmmo", u7.MaxAmmo);
+                BulletsLabel.Text = u7.MaxAmmo .. "/" .. u7.MaxAmmo;
+            end;
+        end;
+
+        v53:SetAttribute("Local_ReloadSession", 0);
+    end;
+end;
+
+local function shoot(u58) -- Line: 371
+    -- upvalues: u6 (ref), reload (copy), u5 (copy), LocalPlayer (copy), RunService (copy), u11 (ref), u9 (ref), u8 (ref), playSound (copy), u7 (ref), UserInputService (copy), GuiService (copy), MobileCursor (copy), u2 (copy), u10 (ref), castRay (copy), GunTracers (copy), ShootEvent (copy), BulletsLabel (copy)
+    if u6:GetAttribute("Local_IsShooting") then
+        return;
+    end;
+
+    if u6:GetAttribute("Local_CurrentAmmo") <= 0 then
+        reload();
+
+        return;
+    end;
+
+    local Hold = u5.Hold;
+
+    if not (Hold and Hold.IsPlaying) then
+        return;
+    end;
+
+    local v59 = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid");
+
+    if not v59 or v59.SeatPart and v59.SeatPart:IsDescendantOf(workspace.CarContainer) then
+        return;
+    end;
+
+    os.clock();
+    local v60 = u6;
+    v60:SetAttribute("Local_IsShooting", true);
+    local v61;
+
+    if u58 then
+        v61 = RunService.RenderStepped:Connect(function(p62) -- Line: 401
+            -- upvalues: u11 (ref), u58 (copy), u9 (ref)
+            u11 = UDim2.fromOffset(u58.Position.X, u58.Position.Y - u9);
+        end);
+    else
+        v61 = nil;
+    end;
+
+    while (not u58 or u58.UserInputState ~= Enum.UserInputState.End) and (u6 == v60 and (v60:GetAttribute("Local_CurrentAmmo") > 0 and (v60:GetAttribute("Local_IsShooting") == true and (v60:GetAttribute("Local_ReloadSession") <= 0 and v59.Health > 0)))) do
+        u8 = os.clock();
+        playSound("ShootSound");
+
+        if u7.Behavior == "Shotgun" then
+            local ShootShell = u5.ShootShell;
+
+            if ShootShell then
+                ShootShell:Play();
+            end;
+
+            task.delay(0.2, function() -- Line: 417
+                -- upvalues: playSound (ref)
+                playSound("SecondarySound");
+            end);
+        elseif u7.Behavior == "Sniper" or v60.Name == "Revolver" then
+            local ShootRifle = u5.ShootRifle;
+
+            if ShootRifle then
+                ShootRifle:Play();
+            end;
+        else
+            local ShootBullet = u5.ShootBullet;
+
+            if ShootBullet then
+                ShootBullet:Play();
+            end;
+        end;
+
+        local v63 = nil;
+        local v64 = nil;
+
+        if UserInputService.MouseBehavior == Enum.MouseBehavior.LockCenter then
+            v63 = workspace.CurrentCamera.ViewportSize.X / 2;
+            v64 = workspace.CurrentCamera.ViewportSize.Y / 2;
+        elseif u58 then
+            if u58.UserInputType == Enum.UserInputType.MouseButton1 or u58.UserInputType == Enum.UserInputType.Gamepad1 then
+                local v65 = UserInputService:GetMouseLocation();
+                v63 = v65.X;
+                v64 = v65.Y;
+            elseif u58.UserInputType == Enum.UserInputType.Touch then
+                local v66 = GuiService:GetGuiInset();
+                v63 = u58.Position.X + v66.X;
+                v64 = u58.Position.Y + v66.Y - u9;
+                MobileCursor.Position = UDim2.fromOffset(u58.Position.X, u58.Position.Y - u9);
+                MobileCursor.Visible = true;
+                u8 = os.clock();
+            end;
+        end;
+
+        local v67 = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Head") and LocalPlayer.Character.Head.Position;
+        local v68 = workspace.CurrentCamera:ViewportPointToRay(v63, v64);
+        local v69 = workspace:Raycast(v68.Origin, v68.Direction * 1500, u2);
+        local v70;
+
+        if v69 then
+            v70 = v69.Position;
+        else
+            v70 = v68.Origin + v68.Direction * 1500;
+        end;
+
+        local v71 = v70 or Vector3.new();
+        local v72 = u7.ProjectileCount or 1;
+        local v73 = {};
+        local SpreadRadius = u7.SpreadRadius;
+
+        if u7.Behavior == "Sniper" then
+            if v59:GetState() == Enum.HumanoidStateType.Freefall then
+                SpreadRadius = SpreadRadius * 100;
+            elseif not u10 then
+                SpreadRadius = SpreadRadius * 22;
+            end;
+        end;
+
+        for _ = 1, v72 do
+            local v74, v75 = castRay(v67, v71, SpreadRadius);
+            local Position = u6.Muzzle.Position;
+
+            if u7.Behavior == "Sniper" then
+                GunTracers.createSniper(Position, v75);
+            elseif u7.Behavior == "Taser" then
+                GunTracers.createTaser(Position, v75);
+            else
+                GunTracers.createBullet(Position, v75);
+            end;
+
+            u6.Handle.Flare.Enabled = true;
+            task.delay(0.05, function() -- Line: 476
+                -- upvalues: u6 (ref)
+                if u6 then
+                    u6.Handle.Flare.Enabled = false;
+                end;
+            end);
+            table.insert(v73, { v67, v75, v74 });
+        end;
+
+        ShootEvent:FireServer(v73);
+        local v76 = v60:GetAttribute("Local_CurrentAmmo") - 1;
+        v60:SetAttribute("Local_CurrentAmmo", v76);
+
+        if u7.Behavior == "Sniper" then
+            BulletsLabel.Text = v76 .. " | " .. u6:GetAttribute("StoredAmmo");
+        else
+            BulletsLabel.Text = v76 .. "/" .. u7.MaxAmmo;
+        end;
+
+        task.wait(u7.FireRate);
+
+        if not (u7.AutoFire and u58) then
+            break;
+        end;
+    end;
+
+    if v61 then
+        v61:Disconnect();
+    end;
+
+    v60:SetAttribute("Local_IsShooting", false);
+end;
+
+local function onEquipped(u77) -- Line: 513
+    -- upvalues: LocalPlayer (copy), u6 (ref), u7 (ref), GunFrame (copy), u5 (copy), UserInputService (copy), MobileGunFrame (copy), ActionArea (copy), ActionButton2 (copy), BulletsLabel (copy), TaserProgress (copy), RunService (copy), u1 (copy), toggleScope (copy), stopAllSounds (copy), u3 (copy), GuiService (copy), u2 (copy), Players (copy), canBeDamaged (copy), shoot (copy), reload (copy), MobileCursor (copy), u10 (ref), u8 (ref), u11 (ref)
+    local Character = LocalPlayer.Character;
+    local v78;
+
+    if Character then
+        v78 = Character:FindFirstChildOfClass("Humanoid");
+    else
+        v78 = Character;
+    end;
+
+    if not v78 or v78.Health <= 0 then
+        return;
+    end;
+
+    u6 = u77;
+    u7 = u6:GetAttributes();
+
+    if u7.Local_ReloadSession > 0 then
+        GunFrame.BulletsLabel.Text = "...";
+    end;
+
+    u6:SetAttribute("Local_CurrentAmmo", u7.CurrentAmmo);
+    local Hold = u5.Hold;
+
+    if Hold then
+        Hold:Play();
+    end;
+
+    local v79 = UserInputService:GetLastInputType() == Enum.UserInputType.Touch;
+    MobileGunFrame.Visible = v79;
+    GunFrame.Visible = true;
+    local v80;
+
+    if v79 then
+        v80 = UserInputService.MouseBehavior == Enum.MouseBehavior.LockCenter;
+    else
+        v80 = v79;
+    end;
+
+    ActionArea.Visible = v80;
+
+    if v79 then
+        if UserInputService.MouseBehavior == Enum.MouseBehavior.LockCenter then
+            v79 = u7.Behavior == "Sniper";
+        else
+            v79 = false;
+        end;
+    end;
+
+    ActionButton2.Visible = v79;
+    ActionArea.Text = "Shoot";
+    ActionButton2.Text = "Zoom";
+
+    if u7.Behavior == "Sniper" then
+        BulletsLabel.Text = u7.CurrentAmmo .. " | " .. u7.StoredAmmo;
+        UserInputService.MouseIcon = "rbxassetid://98794608762931";
+        TaserProgress.BackgroundColor3 = Color3.fromRGB(106, 106, 106);
+        TaserProgress.Bar.BackgroundColor3 = Color3.fromRGB(255, 255, 255);
+
+        if Character:FindFirstChild("HumanoidRootPart") then
+            u1:GiveTask((RunService.RenderStepped:Connect(function() -- Line: 553
+                -- upvalues: UserInputService (ref)
+                if UserInputService.MouseIcon ~= "rbxassetid://98794608762931" then
+                    UserInputService.MouseIcon = "rbxassetid://98794608762931";
+                end;
+            end)));
+        end;
+
+        u1:GiveTask(function() -- Line: 569
+            -- upvalues: toggleScope (ref)
+            toggleScope(false);
+        end);
+    else
+        if u7.Behavior == "Taser" then
+            TaserProgress.BackgroundColor3 = Color3.fromRGB(37, 86, 111);
+            TaserProgress.Bar.BackgroundColor3 = Color3.fromRGB(0, 183, 255);
+        end;
+
+        BulletsLabel.Text = u7.CurrentAmmo .. "/" .. u7.MaxAmmo;
+        UserInputService.MouseIcon = "rbxassetid://98794608762931";
+    end;
+
+    u1:GiveTask(function() -- Line: 583
+        -- upvalues: stopAllSounds (ref), u3 (ref), u5 (ref), MobileGunFrame (ref), GunFrame (ref), UserInputService (ref), ActionArea (ref), ActionButton2 (ref), TaserProgress (ref), u6 (ref)
+        stopAllSounds();
+
+        for i, _ in pairs(u3) do
+            local v81 = u5[i];
+
+            if v81 then
+                v81:Stop();
+            end;
+        end;
+
+        MobileGunFrame.Visible = false;
+        GunFrame.Visible = false;
+        UserInputService.MouseIcon = "";
+        ActionArea.Visible = false;
+        ActionButton2.Visible = false;
+        TaserProgress.Visible = false;
+
+        if u6 then
+            u6 = nil;
+        end;
+    end);
+    local CurrentCamera = workspace.CurrentCamera;
+    local ViewportSize = CurrentCamera.ViewportSize;
+    GuiService:GetGuiInset();
+    local FireRate = u7.FireRate;
+
+    if not u7.AutoFire then
+        FireRate = FireRate * 1.5;
+    end;
+
+    local u82 = 0;
+    local u83 = 0;
+    local u84 = u7.Behavior == "Taser" and true or u7.Behavior == "Sniper";
+    local u85 = u7.ChargeTime or 0;
+
+    local function updateChargingBar(p86) -- Line: 614
+        -- upvalues: u83 (ref), TaserProgress (ref), u85 (copy)
+        u83 = p86;
+        TaserProgress.Bar.Size = UDim2.fromScale(1, (math.clamp(u83 / u85, 0, 1)));
+    end;
+
+    u83 = 0;
+    TaserProgress.Bar.Size = UDim2.fromScale(1, (math.clamp(u83 / u85, 0, 1)));
+    u1:GiveTask((RunService.Heartbeat:Connect(function(p87) -- Line: 626
+        -- upvalues: UserInputService (ref), TaserProgress (ref), u83 (ref), u85 (copy), u84 (copy), u77 (copy), u82 (ref), FireRate (ref), ViewportSize (copy), CurrentCamera (copy), u2 (ref), Players (ref), canBeDamaged (ref), u7 (ref), shoot (ref), reload (ref)
+        if UserInputService.MouseBehavior ~= Enum.MouseBehavior.LockCenter or UserInputService:GetLastInputType() ~= Enum.UserInputType.Touch then
+            TaserProgress.Visible = false;
+            u83 = 0;
+            TaserProgress.Bar.Size = UDim2.fromScale(1, (math.clamp(u83 / u85, 0, 1)));
+
+            return;
+        end;
+
+        TaserProgress.Visible = u84;
+
+        if u84 and u77:GetAttribute("Local_ReloadSession") ~= 0 then
+            u83 = 0;
+            TaserProgress.Bar.Size = UDim2.fromScale(1, (math.clamp(u83 / u85, 0, 1)));
+
+            return;
+        end;
+
+        local v88 = os.clock();
+
+        if v88 - u82 < FireRate then
+            return;
+        end;
+
+        local v89 = CurrentCamera:ViewportPointToRay(ViewportSize.X / 2, ViewportSize.Y / 2);
+        local v90 = workspace:Raycast(v89.Origin, v89.Direction * 1500, u2);
+
+        if not v90 then
+            return;
+        end;
+
+        local v91 = v90.Instance:FindFirstAncestorOfClass("Model");
+
+        if not v91 then
+            return;
+        end;
+
+        local v92 = Players:GetPlayerFromCharacter(v91);
+
+        if v92 and canBeDamaged(v92) then
+            if u84 then
+                if v90.Distance > u7.Range + 5 then
+                    return;
+                end;
+
+                u83 = u83 + p87;
+                TaserProgress.Bar.Size = UDim2.fromScale(1, (math.clamp(u83 / u85, 0, 1)));
+
+                if u85 <= u83 then
+                    u82 = v88;
+                    shoot();
+                    u83 = 0;
+                    TaserProgress.Bar.Size = UDim2.fromScale(1, (math.clamp(u83 / u85, 0, 1)));
+                    task.delay(0.1, reload);
+                end;
+            else
+                u82 = v88;
+                shoot();
+            end;
+        end;
+    end)));
+    u1:GiveTask((RunService.Heartbeat:Connect(function(p93) -- Line: 686
+        -- upvalues: UserInputService (ref), u7 (ref), MobileCursor (ref), u10 (ref), u8 (ref)
+        if UserInputService.MouseBehavior ~= Enum.MouseBehavior.LockCenter then
+            if os.clock() - u8 > 1 then
+                MobileCursor.Visible = false;
+            end;
+
+            return;
+        end;
+
+        if u7.Behavior == "Sniper" then
+            MobileCursor.Visible = not u10;
+
+            return;
+        end;
+
+        MobileCursor.Visible = true;
+    end)));
+    u1:GiveTask((RunService.RenderStepped:Connect(function() -- Line: 702
+        -- upvalues: UserInputService (ref), GuiService (ref), MobileCursor (ref), TaserProgress (ref), u11 (ref)
+        if UserInputService.MouseBehavior ~= Enum.MouseBehavior.LockCenter then
+            MobileCursor.Position = u11;
+
+            return;
+        end;
+
+        local v94 = GuiService:GetGuiInset();
+        local ViewportSize2 = workspace.CurrentCamera.ViewportSize;
+        MobileCursor.Position = UDim2.fromOffset(ViewportSize2.X / 2 - v94.X, ViewportSize2.Y / 2 - v94.Y);
+        TaserProgress.Position = UDim2.fromOffset(ViewportSize2.X / 2 - v94.X + 30, ViewportSize2.Y / 2 - v94.Y);
+    end)));
+    local u95 = false;
+    u1:GiveTask((UserInputService.InputChanged:Connect(function(p96, p97) -- Line: 717
+        -- upvalues: u95 (ref)
+        if p96.UserInputType == Enum.UserInputType.MouseMovement then
+            u95 = p97;
+        end;
+    end)));
+    u1:GiveTask((u6:GetAttributeChangedSignal("StoredAmmo"):Connect(function() -- Line: 725
+        -- upvalues: u6 (ref), BulletsLabel (ref)
+        local v98 = u6:GetAttribute("StoredAmmo");
+        BulletsLabel.Text = (u6:GetAttribute("CurrentAmmo") or 0) .. " | " .. (v98 or 0);
+    end)));
+end;
+
+local function onUnequipped() -- Line: 734
+    -- upvalues: u1 (copy)
+    u1:DoCleaning();
+end;
+
+TouchReloadButton.MouseButton1Down:Connect(function() -- Line: 738
+    -- upvalues: reload (copy)
+    reload();
+end);
+UserInputService.InputBegan:Connect(function(p99, p100) -- Line: 742
+    -- upvalues: u6 (ref), shoot (copy), u7 (ref), UserInputService (copy), toggleScope (copy), MobileGunFrame (copy), IgnoreTouchArea (copy), isInsideDynThumbFrame (copy), ActionArea (copy), reload (copy)
+    if p100 then
+        return;
+    end;
+
+    if u6 and u6:GetAttribute("ToolType") == "Gun" then
+        if p99.UserInputType == Enum.UserInputType.MouseButton1 then
+            shoot(p99);
+
+            return;
+        end;
+
+        if p99.UserInputType == Enum.UserInputType.MouseButton2 and (u7.Behavior == "Sniper" and UserInputService.MouseBehavior == Enum.MouseBehavior.LockCenter) then
+            toggleScope();
+
+            return;
+        end;
+
+        if p99.UserInputType == Enum.UserInputType.Keyboard and (p99.KeyCode == Enum.KeyCode.Z and u7.Behavior == "Sniper") then
+            toggleScope();
+
+            return;
+        end;
+
+        if p99.UserInputType == Enum.UserInputType.Touch then
+            if MobileGunFrame.Visible then
+                local v101 = IgnoreTouchArea;
+                local X = p99.Position.X;
+                local Y = p99.Position.Y;
+
+                if v101.AbsolutePosition.X <= X and (X <= v101.AbsolutePosition.X + v101.AbsoluteSize.X and (v101.AbsolutePosition.Y <= Y and Y <= v101.AbsolutePosition.Y + v101.AbsoluteSize.Y)) then
+                    return;
+                end;
+            end;
+
+            if isInsideDynThumbFrame(p99.Position.X, p99.Position.Y) then
+                return;
+            end;
+
+            if not ActionArea.Visible then
+                shoot(p99);
+            end;
+        elseif p99.UserInputType == Enum.UserInputType.Keyboard then
+            if p99.KeyCode == Enum.KeyCode.R then
+                reload();
+            end;
+        elseif p99.UserInputType == Enum.UserInputType.Gamepad1 then
+            if p99.KeyCode == Enum.KeyCode.ButtonR2 then
+                shoot(p99);
+
+                return;
+            end;
+
+            if p99.KeyCode == Enum.KeyCode.ButtonX then
+                reload();
+
+                return;
+            end;
+
+            if p99.KeyCode == Enum.KeyCode.ButtonL2 and u7.Behavior == "Sniper" then
+                local _ = workspace.CurrentCamera;
+                toggleScope();
+            end;
+        end;
+    end;
+end);
+ActionArea.InputBegan:Connect(function(p102) -- Line: 792
+    -- upvalues: u6 (ref), shoot (copy)
+    if p102.UserInputType ~= Enum.UserInputType.Touch then
+        return;
+    end;
+
+    if u6 and (u6:GetAttribute("ToolType") == "Gun" and p102.UserInputType == Enum.UserInputType.Touch) then
+        shoot(p102);
+    end;
+end);
+ActionButton2.InputBegan:Connect(function(p103) -- Line: 804
+    -- upvalues: u6 (ref), u7 (ref), toggleScope (copy)
+    if p103.UserInputType ~= Enum.UserInputType.Touch then
+        return;
+    end;
+
+    if u6 and (u6:GetAttribute("ToolType") == "Gun" and (u7.Behavior == "Sniper" and (p103.UserInputType == Enum.UserInputType.Touch and p103.UserInputState == Enum.UserInputState.Begin))) then
+        toggleScope();
+    end;
+end);
+LocalPlayer.CharacterAdded:Connect(function(p104) -- Line: 818
+    -- upvalues: loadAnimations (copy), u2 (copy), onEquipped (copy), u1 (copy)
+    local Humanoid = p104:WaitForChild("Humanoid", 3);
+    local v105;
+
+    if Humanoid then
+        v105 = Humanoid:WaitForChild("Animator", 3);
+    else
+        v105 = Humanoid;
+    end;
+
+    p104:WaitForChild("HumanoidRootPart", 3);
+
+    if v105 then
+        loadAnimations(v105);
+    end;
+
+    u2.FilterDescendantsInstances = { p104 };
+    p104.ChildAdded:Connect(function(p106) -- Line: 853
+        -- upvalues: onEquipped (ref)
+        if p106:IsA("Tool") and p106:GetAttribute("ToolType") == "Gun" then
+            onEquipped(p106);
+        end;
+    end);
+    p104.ChildRemoved:Connect(function(p107) -- Line: 859
+        -- upvalues: u1 (ref)
+        if p107:IsA("Tool") then
+            u1:DoCleaning();
+        end;
+    end);
+    p104.AncestryChanged:Connect(function(p108, p109) -- Line: 864
+        -- upvalues: u1 (ref)
+        if p109 == nil then
+            u1:DoCleaning();
+        end;
+    end);
+    Humanoid.Died:Connect(function() -- Line: 869
+        -- upvalues: u1 (ref)
+        u1:DoCleaning();
+    end);
+end);
+UserInputService.LastInputTypeChanged:Connect(function(p110) -- Line: 874
+    -- upvalues: u6 (ref), MobileGunFrame (copy), ActionArea (copy), UserInputService (copy), ActionButton2 (copy), u7 (ref)
+    if u6 then
+        if p110 == Enum.UserInputType.Touch then
+            MobileGunFrame.Visible = true;
+            ActionArea.Visible = UserInputService.MouseBehavior == Enum.MouseBehavior.LockCenter;
+            ActionButton2.Visible = u7.Behavior == "Sniper";
+
+            return;
+        end;
+
+        MobileGunFrame.Visible = false;
+        ActionArea.Visible = false;
+        ActionButton2.Visible = false;
+    end;
+end);
+UserInputService:GetPropertyChangedSignal("MouseBehavior"):Connect(function(p111) -- Line: 888
+    -- upvalues: u6 (ref), ActionArea (copy), UserInputService (copy), ActionButton2 (copy), u7 (ref)
+    if u6 then
+        local v112;
+
+        if UserInputService:GetLastInputType() == Enum.UserInputType.Touch then
+            v112 = UserInputService.MouseBehavior == Enum.MouseBehavior.LockCenter;
+        else
+            v112 = false;
+        end;
+
+        ActionArea.Visible = v112;
+        local v113;
+
+        if UserInputService:GetLastInputType() == Enum.UserInputType.Touch then
+            v113 = u7.Behavior == "Sniper";
+        else
+            v113 = false;
+        end;
+
+        ActionButton2.Visible = v113;
+    end;
+end);
+init();

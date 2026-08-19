@@ -1,0 +1,81 @@
+local v1 = {};
+local Debris = game:GetService("Debris");
+local TweenService = game:GetService("TweenService");
+local u2 = TweenInfo.new(0.8, Enum.EasingStyle.Quad, Enum.EasingDirection.In);
+local u3 = TweenInfo.new(2.8, Enum.EasingStyle.Quad, Enum.EasingDirection.In);
+local u4 = {
+    Transparency = 1
+};
+local u5 = {
+    Brightness = 0
+};
+
+function v1.createTaser(p6, p7) -- Line: 12
+    -- upvalues: Debris (copy), TweenService (copy), u2 (copy), u4 (copy), u5 (copy)
+    local magnitude = (p6 - p7).magnitude;
+    local Part = Instance.new("Part");
+    Part.Name = "RayPart";
+    Part.Material = Enum.Material.Neon;
+    Part.Anchored = true;
+    Part.Transparency = 0.5;
+    Part.formFactor = Enum.FormFactor.Custom;
+    Part.Size = Vector3.new(0.2, 0.2, magnitude);
+    Part.CFrame = CFrame.new((p6 + p7) / 2, p7);
+    Part.CanCollide = false;
+    Part.CanQuery = false;
+    Part.CanTouch = false;
+    Part.BrickColor = BrickColor.new("Cyan");
+    Debris:AddItem(Part, 2);
+    local SurfaceLight = Instance.new("SurfaceLight", Part);
+    SurfaceLight.Color = Color3.fromRGB(0, 234, 255);
+    SurfaceLight.Range = 7;
+    SurfaceLight.Face = "Bottom";
+    SurfaceLight.Brightness = 5;
+    SurfaceLight.Angle = 180;
+    local v8 = TweenService:Create(Part, u2, u4);
+    local v9 = TweenService:Create(SurfaceLight, u2, u5);
+    v8:Play();
+    v9:Play();
+    Part.Parent = workspace.CurrentCamera;
+end;
+
+function v1.createSniper(p10, p11) -- Line: 45
+    -- upvalues: Debris (copy), TweenService (copy), u3 (copy), u4 (copy)
+    local magnitude = (p10 - p11).magnitude;
+    local Part = Instance.new("Part");
+    Part.Name = "RayPart";
+    Part.Material = Enum.Material.Neon;
+    Part.Anchored = true;
+    Part.Transparency = 0.5;
+    Part.formFactor = Enum.FormFactor.Custom;
+    Part.Size = Vector3.new(0.17, 0.17, magnitude);
+    Part.CFrame = CFrame.new((p10 + p11) / 2, p11);
+    Part.CanCollide = false;
+    Part.CanQuery = false;
+    Part.CanTouch = false;
+    Part.BrickColor = BrickColor.new("Medium stone grey");
+    Debris:AddItem(Part, 4);
+    TweenService:Create(Part, u3, u4):Play();
+    Part.Parent = workspace.CurrentCamera;
+end;
+
+function v1.createBullet(p12, p13) -- Line: 69
+    -- upvalues: Debris (copy)
+    local magnitude = (p12 - p13).magnitude;
+    local Part = Instance.new("Part");
+    Part.Name = "RayPart";
+    Part.Material = Enum.Material.Neon;
+    Part.Anchored = true;
+    Part.Transparency = 0.5;
+    Part.formFactor = Enum.FormFactor.Custom;
+    Part.Size = Vector3.new(0.1, 0.1, magnitude);
+    Part.CFrame = CFrame.new((p12 + p13) / 2, p13);
+    Part.CanCollide = false;
+    Part.CanQuery = false;
+    Part.CanTouch = false;
+    Part.BrickColor = BrickColor.Yellow();
+    Debris:AddItem(Part, 0.05);
+    Part.Parent = workspace.CurrentCamera;
+end;
+
+return v1;
